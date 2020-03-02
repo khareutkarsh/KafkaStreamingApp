@@ -1,0 +1,16 @@
+Download the sample data from: https://storage.googleapis.com/datascience-public/data-eng-challenge/MOCK_DATA.json
+
+Given the data sample we ask you to build a simple streaming application. You will be required to install kafka locally. Check https://kafka.apache.org/quickstart for references.
+
+- Write a simple producer app in Python that reads the data in the given file and writes it as messages to a kafka topic. Take into account that this file could be of several MB.
+
+- Write a simple consumer app in PySpark streaming that reads the kafka stream and does the following:
+
+                                - Cleans the data. For example (you may come up with different ones): country fields always start with capital letter, IP address format is correct, date field has always the same format
+                                - Computes some simple measures of the data on the fly (you may come up with different ones): most and least represented country, number of unique users in the current window
+
+Plus task:
+
+- Write a simple monitoring app/module to check (partly) if the system is working as expected. An example to do this could be: check if the number of messages processed by the consumer is equal to the number of messages pushed by the producer
+
+Present your solution uploading the code to GitHub and the instructions on how to install the tools you used, containerization to allow portability could be an option.
