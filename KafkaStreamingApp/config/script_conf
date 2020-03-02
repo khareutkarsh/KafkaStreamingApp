@@ -1,1 +1,14 @@
 EGG_FILE_NAME=KafkaStreamingApp-1.0.0-py3.7.egg
+KAFKA_CONSUMER_GROUP_NAME = "consumer_group"
+KAFKA_INPUT_TOPIC_NAME = "test_input"
+KAFKA_OUTPUT_TOPIC_NAME = "test_staging"
+KAFKA_BOOTSTRAP_SERVERS = "127.0.0.1:9092","127.0.0.1:9093","127.0.0.1:9094"
+TIME_WINDOW="5 minutes"
+CHECKPOINT_FILE_DIR="file:///F://Hadoop//spark_structured_streaming_kafka//"
+KAFKA_HOME="F:\kafka_2.12-2.4.0"
+INPUT_JSON_FILE="MOCK_DATA.json"
+KAFKA_PRODUCER_SLEEP_TIME=2
+PRODUCER_NAME="py_producer"
+STREAM_CONSUMER_NAME="py_stream_consumer"
+BATCH_CONSUMER_NAME="py_batch_consumer"
+MBEAN="kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec"

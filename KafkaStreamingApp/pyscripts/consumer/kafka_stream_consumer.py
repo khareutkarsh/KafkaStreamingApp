@@ -15,20 +15,24 @@ from pyscripts.util.message_schema import get_message_schema
 class KafkaStreamConsumer:
 
     # Method to initialize the class
-    def __init__(self,consumer_name):
+    def __init__(self,consumer_name,kafka_bootstrap_servers,kafka_input_topic_name,kafka_output_topic_name,checkpoint_file_dir):
         self.logger = get_logger()
         self.spark = get_spark_session()
         self.message_schema = get_message_schema()
         self.dir_name = os.path.dirname(__file__)
         self.consumer_name=consumer_name
+        self.kafka_bootstrap_servers = kafka_bootstrap_servers
+        self.kafka_input_topic_name = kafka_input_topic_name
+        self.kafka_output_topic_name = kafka_output_topic_name
+        self.checkpoint_file_dir=checkpoint_file_dir
 
     # Method to read the kafka stream
     def get_kafka_consumer(self):
         input_df = self.spark \
             .readStream \
             .format("kafka") \
-            .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
-            .option("subscribe", KAFKA_INPUT_TOPIC_NAME) \
+            .option("kafka.bootstrap.servers", self.kafka_bootstrap_servers) \
+            .option("subscribe", self.kafka_input_topic_name) \
             .option("auto.offset.reset", "earliest") \
             .load() \
             .selectExpr("CAST(value AS STRING)", "timestamp")
@@ -50,10 +54,10 @@ class KafkaStreamConsumer:
                 .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)") \
                 .writeStream \
                 .format("kafka") \
-                .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
-                .option("topic", KAFKA_OUTPUT_TOPIC_NAME) \
+                .option("kafka.bootstrap.servers", self.kafka_bootstrap_servers) \
+                .option("topic", self.kafka_output_topic_name) \
                 .outputMode("append") \
-                .option("checkpointLocation", CHECKPOINT_FILE_DIR + "output_topic_checkpoint") \
+                .option("checkpointLocation", self.checkpoint_file_dir + "output_topic_checkpoint") \
                 .start()
 
             # save the cleansed data in parquet file format for future use
@@ -62,7 +66,7 @@ class KafkaStreamConsumer:
                 .format("parquet") \
                 .option("startingOffsets", "earliest") \
                 .option("path", self.dir_name + "/../../resources/output/data") \
-                .option("checkpointLocation", CHECKPOINT_FILE_DIR + "saved_parquet_checkpoint") \
+                .option("checkpointLocation", self.checkpoint_file_dir + "saved_parquet_checkpoint") \
                 .start()
 
             df_write_stream.awaitTermination()
@@ -83,11 +87,11 @@ class KafkaStreamConsumer:
             F.col("last_name"), \
             F.when(F.col("email").isNull(), 'NULL').otherwise(F.col("email")).alias("email"), \
             F.col("gender"), \
-            # F.when(F.col("ip_address").rlike(IP_REGEX),F.col("ip_address")).otherwise(DEFAULT_IP), \
+            F.col("ip_address"),\
             F.date_format(F.col("date"), 'dd/MM/yyyy').alias("date"), \
             F.initcap(F.col("country")).alias("country"), \
             F.col("timestamp") \
-            )
+            ).withColumn("ip_addr",F.when(F.col("ip_address").rlike(IP_REGEX),F.col("ip_address")).otherwise(DEFAULT_IP)).drop(F.col("ip_address"))
         return cleaned_message_df
 
     # Method to add key value columns to publish the grouped data on new topic

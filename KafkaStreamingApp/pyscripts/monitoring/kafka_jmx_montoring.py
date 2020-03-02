@@ -3,6 +3,8 @@ This is the file that will execute the JMX tool for fetching the kafka metrics b
 """
 
 import subprocess
+import sys
+
 from pyscripts.constants.app_consumer_constants import *
 
 
@@ -19,4 +21,7 @@ def run_command(filepath, KAFKA_HOME,MBEAN):
 
 
 if __name__ == "__main__":
-    run_command(JMX_SCRIPT_PATH, KAFKA_HOME,MBEAN)
+    if sys.argv[1] and sys.argv[2]:
+        KAFKA_HOME=sys.argv[1]
+        MBEAN=sys.argv[2]
+        run_command(JMX_SCRIPT_PATH, KAFKA_HOME,MBEAN)

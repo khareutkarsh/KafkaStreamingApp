@@ -14,19 +14,22 @@ from pyscripts.util.spark_session import get_spark_session
 class KafkaBatchConsumer:
 
     # Method for initializing the class
-    def __init__(self):
+    def __init__(self,consumer_name,kafka_bootstrap_servers,kafka_output_topic_name):
         self.logger = get_logger()
         self.spark = get_spark_session()
         self.message_schema = get_grouped_message_schema()
+        self.consumer_name = consumer_name
         self.dir_name = os.path.dirname(__file__)
+        self.kafka_bootstrap_servers=kafka_bootstrap_servers
+        self.kafka_output_topic_name=kafka_output_topic_name
 
     # Method to read the kafka topic
     def get_kafka_consumer(self):
         inputDf = self.spark \
             .read \
             .format("kafka") \
-            .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
-            .option("subscribe", KAFKA_OUTPUT_TOPIC_NAME) \
+            .option("kafka.bootstrap.servers", self.kafka_bootstrap_servers) \
+            .option("subscribe", self.kafka_output_topic_name) \
             .option("startingOffsets", "earliest") \
             .load() \
             .selectExpr("CAST(value AS STRING)", "timestamp")
@@ -42,16 +45,26 @@ class KafkaBatchConsumer:
                 F.approx_count_distinct("users").alias("unique_users")).orderBy('time_window', 'unique_users')
 
             country_count_df1 = flat_message_df.groupBy('time_window', 'country').count().orderBy('time_window', 'count')
-            most_represented_country_df = country_count_df1.withColumn("rank_max", F.rank().over(
+            most_represented_countries_df = country_count_df1.withColumn("rank_max", F.rank().over(
                 Window.partitionBy("time_window").orderBy(F.desc("count")))).where(F.col("rank_max") == 1).orderBy(
-                "time_window").select("time_window", "country", "count")
-            least_represented_country_df = country_count_df1.withColumn("rank_min", F.rank().over(
+                "time_window").select(F.col("time_window"), F.col("country").alias("most_represented_country"), F.col("count").alias("most_represented_country_count"))
+            least_represented_countries_df = country_count_df1.withColumn("rank_min", F.rank().over(
                 Window.partitionBy("time_window").orderBy(F.col("count")))).where(F.col("rank_min") == 1).orderBy(
-                "time_window").select("time_window", "country", "count")
+                "time_window").select(F.col("time_window"), F.col("country").alias("least_represented_country"), F.col("count").alias("least_represented_country_count"))
 
-            self.logger.info(most_represented_country_df.collect())
-            self.logger.info(least_represented_country_df.collect())
-            self.logger.info(unique_users_measure_df.collect())
+            most_represented_country_df  = self.get_first_record_from_grouped_data(most_represented_countries_df)
+            least_represented_country_df = self.get_first_record_from_grouped_data(least_represented_countries_df)
+
+            measures_df = most_represented_countries_df.join(least_represented_countries_df,"time_window").join(unique_users_measure_df,"time_window")\
+                .select(most_represented_countries_df.time_window,F.col("most_represented_country")\
+                        ,F.col("most_represented_country_count"),F.col("least_represented_country")\
+                        ,F.col("least_represented_country_count"),F.col("unique_users"))
+
+            measures_df.write.format("csv").save(self.dir_name + "/../../resources/output/measures")
+
+            #self.logger.info(most_represented_country_df.collect())
+            #self.logger.info(least_represented_country_df.collect())
+            #self.logger.info(unique_users_measure_df.collect())
         except Exception as e:
             self.logger.error(e)
 
@@ -60,3 +73,8 @@ class KafkaBatchConsumer:
         message_df = input_df.select(from_json("value", self.grouped_schema).alias("grouped_data"), "timestamp")
         flat_message_df = message_df.select("grouped_data.*", "timestamp")
         return flat_message_df
+
+    def get_first_record_from_grouped_data(self,grouped_df):
+        wndw = Window.partitionBy("time_window").orderBy(F.col("country"))
+        limited_records_df = grouped_df.withColumn("row_num",F.row_number.over(wndw)).where(F._col("row_num")== 1).drop(F.col("row_num"))
+        return limited_records_df
