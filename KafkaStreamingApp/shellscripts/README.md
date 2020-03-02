@@ -1,6 +1,6 @@
 # Shell scripts for automation 
 
-These scripts are written to provide automated building of the project and running test cases
+These scripts are written to provide automated building of the project and running the application
 
 ##Execution
 
@@ -11,7 +11,7 @@ $KafkaStreamingApp/shellscirpts>sh execute_stream_producer.sh
 $KafkaStreamingApp/shellscirpts>sh execute_stream_consumer.sh
 $KafkaStreamingApp/shellscirpts>sh execute_batch_consumer.sh
 $KafkaStreamingApp/shellscirpts>sh execute_prod_cons_recon.sh
-$KafkaStreamingApp/shellscirpts>sh execute_kafka_jmx_monitoring.sh
+$KafkaStreamingApp/shellscirpts>sh execute_kafka_runclass.sh
 ```
 ##Script Details
 #### build_egg.sh
@@ -24,5 +24,5 @@ This file is used to run the consumer application which groups the stream data a
 This file is used to run the consumer application that reads the grouped data and calculate measures (Given the kafka brokers and topics are running)
 ### execute_prod_cons_recon.sh
 This file is used to run the reconciliation application that will verify in between whether the number of messages sent by producer are equal to number of messages processed by the consumer (Given the kafka brokers and topics are running)
-### execute_kafka_jmx_monitoring.sh
+### execute_kafka_kafka_runclass.sh
 This file is used to run the monitoring tool jmx for kafka for a particular configuration. For better visualizations one should open JAVA_HOME/bin/jconsole  (Given the kafka brokers and topics are running)

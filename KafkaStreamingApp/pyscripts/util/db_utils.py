@@ -3,13 +3,17 @@ This is a utils file for database
 """
 import sqlite3
 from sqlite3 import Error
-
+from pyscripts.util.logging_util import get_logger
 
 # Method to get the db connection
+from pyscripts.constants.app_producer_constants import DB_FILE_PATH
+
+
 def get_db_connection(db_file_path, logger):
     """ create a database connection to a SQLite database """
     conn = None
     try:
+        logger.info(db_file_path)
         conn = sqlite3.connect(db_file_path)
     except Error as e:
         logger.error(e)
@@ -54,7 +58,7 @@ def get_processstatuslog_db(cursor, table_name, producer_name, logger):
     query = "SELECT * FROM " + table_name
     try:
         if producer_name:
-            query = query + " where name=" + producer_name
+            query = query + " where name='" + producer_name+"'"
         logger.info(query)
         cursor.execute(query)
         rows = cursor.fetchall()
@@ -62,3 +66,11 @@ def get_processstatuslog_db(cursor, table_name, producer_name, logger):
     except Error as e:
         logger.error(e)
     return None
+
+'''if __name__=="__main__":
+    logger = get_logger()
+    conn=get_db_connection(DB_FILE_PATH, logger)
+    cursor = conn.cursor()
+    initialize_db(cursor, logger)
+    #insert_processstatuslog(cursor, conn, "producer_message_log", "STREAM_PRODUCER", 1, logger)
+    print(get_processstatuslog_db(cursor, "producer_message_log", "STREAM_PRODUCER", logger))'''

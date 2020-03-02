@@ -12,17 +12,18 @@ from pyscripts.util.logging_util import get_logger
 class KafkaStreamProducer:
 
     # Method to initialize the class variables
-    def __init__(self, producer_name,kafka_bootstrap_servers,kafka_input_topic_name,input_json_file,kafka_producer_sleep_time):
-        logger = get_logger()
+    def __init__(self, producer_name,kafka_bootstrap_servers,kafka_input_topic_name,input_json_file,kafka_producer_sleep_time,db_file_path):
+        self.logger = get_logger()
         self.producer_name = producer_name
         self.kafka_bootstrap_servers=kafka_bootstrap_servers
         self.kafka_input_topic_name=kafka_input_topic_name
         self.input_json_file=input_json_file
         self.kafka_producer_sleep_time=kafka_producer_sleep_time
+        self.db_file_path=db_file_path
 
     # initializing the DB and getting a connection
     def initialize_database(self):
-        conn = get_db_connection(DB_FILE_PATH, self.logger)
+        conn = get_db_connection(self.db_file_path, self.logger)
         cursor = conn.cursor()
         initialize_db(cursor, self.logger)
         return conn, cursor
@@ -41,7 +42,7 @@ class KafkaStreamProducer:
     # Method to read the input file and post the messages on the kafka topic
     def put_message_on_kafka(self, kafka_producer):
         dir_name = os.path.dirname(__file__)
-        test_file = dir_name + '/../../resources/' + self.input_json_file
+        test_file = self.input_json_file
         recordCount = 0
         # inserting one record in the status log and getting the recordid to return as a response
         conn, cursor = self.initialize_database()
@@ -52,6 +53,6 @@ class KafkaStreamProducer:
                 record = line[:-1]
                 kafka_producer.send(self.kafka_input_topic_name, value=record, )
                 recordCount += 1
-                update_processstatuslog(cursor, conn, recordid, "producer_message_log", str(recordCount))
+                update_processstatuslog(cursor, conn, recordid, "producer_message_log", str(recordCount),self.logger)
                 self.logger.info("Records written on topic :" + str(recordCount))
-                sleep(self.kafka_producer_sleep_time)
+                sleep(int(self.kafka_producer_sleep_time))

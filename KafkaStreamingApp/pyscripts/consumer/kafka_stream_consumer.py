@@ -15,9 +15,9 @@ from pyscripts.util.message_schema import get_message_schema
 class KafkaStreamConsumer:
 
     # Method to initialize the class
-    def __init__(self,consumer_name,kafka_bootstrap_servers,kafka_input_topic_name,kafka_output_topic_name,checkpoint_file_dir):
+    def __init__(self,consumer_name,kafka_bootstrap_servers,kafka_input_topic_name,kafka_output_topic_name,checkpoint_file_dir,kafka_window_time,output_file_dir):
         self.logger = get_logger()
-        self.spark = get_spark_session()
+        self.spark = get_spark_session(self.logger)
         self.message_schema = get_message_schema()
         self.dir_name = os.path.dirname(__file__)
         self.consumer_name=consumer_name
@@ -25,8 +25,10 @@ class KafkaStreamConsumer:
         self.kafka_input_topic_name = kafka_input_topic_name
         self.kafka_output_topic_name = kafka_output_topic_name
         self.checkpoint_file_dir=checkpoint_file_dir
+        self.kafka_window_time=kafka_window_time
+        self.output_file_dir=output_file_dir
 
-    # Method to read the kafka stream
+        # Method to read the kafka stream
     def get_kafka_consumer(self):
         input_df = self.spark \
             .readStream \
@@ -44,7 +46,7 @@ class KafkaStreamConsumer:
             input_df = self.get_kafka_consumer()
             flat_message_df = self.get_parsed_message(input_df)
             cleaned_message_df = self.get_cleaned_message(flat_message_df)
-            grouped_message_df = cleaned_message_df.select('id', window(cleaned_message_df.timestamp, TIME_WINDOW),
+            grouped_message_df = cleaned_message_df.select('id', window(cleaned_message_df.timestamp, self.kafka_window_time),
                                                            'country',
                                                            'email')
             grouped_message_output_df = self.get_output_df(grouped_message_df)
@@ -65,7 +67,7 @@ class KafkaStreamConsumer:
                 .writeStream \
                 .format("parquet") \
                 .option("startingOffsets", "earliest") \
-                .option("path", self.dir_name + "/../../resources/output/data") \
+                .option("path", self.output_file_dir ) \
                 .option("checkpointLocation", self.checkpoint_file_dir + "saved_parquet_checkpoint") \
                 .start()
 

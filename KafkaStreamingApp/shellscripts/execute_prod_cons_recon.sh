@@ -1,3 +1,4 @@
 #!/bin/bash
 . ../config/script_conf
-python ../pyscripts/monitoring/prod_cons_recon_main.py
+cd ../dist
+python ${EGG_FILE_NAME} PROD_CONS_RECON ${PRODUCER_NAME} ${DB_FILE_PATH} ${OUTPUT_FILE_DIR}

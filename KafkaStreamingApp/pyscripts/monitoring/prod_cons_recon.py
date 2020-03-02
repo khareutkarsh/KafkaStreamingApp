@@ -2,6 +2,8 @@
 This class is used to reconcile the counts of message sent by producer and received by consumer
 """
 import os
+import sys
+
 from pyscripts.constants.app_producer_constants import DB_FILE_PATH
 from pyscripts.util.db_utils import get_db_connection, get_processstatuslog_db
 from pyscripts.util.logging_util import get_logger
@@ -11,18 +13,20 @@ from pyscripts.util.spark_session import get_spark_session
 class ProdConsRecon:
 
     # Method to initialize the class variables
-    def __init__(self, producer_name):
+    def __init__(self, producer_name,db_file_path,output_file_path):
         self.logger = get_logger()
         self.producer_name = producer_name
-        self.spark = get_spark_session()
+        self.spark = get_spark_session(self.logger)
         self.dir_name = os.path.dirname(__file__)
+        self.db_file_path=db_file_path
+        self.output_file_path=output_file_path
 
     # Method to reconcile the count between producer and consumer
     def producer_consumer_recon(self):
-        conn = get_db_connection(DB_FILE_PATH, self.logger)
+        conn = get_db_connection(self.db_file_path, self.logger)
         cursor = conn.cursor()
         try:
-            consumer_message_count = self.spark.read.parquet(self.dir_name + "/../../resources/output/data").count()
+            consumer_message_count = self.spark.read.parquet(self.output_file_path).count()
             rows = get_processstatuslog_db(cursor, "producer_message_log", self.producer_name, self.logger)
             for row in rows:
                 producer_message_count = row[2]
@@ -39,3 +43,4 @@ class ProdConsRecon:
             return []
         finally:
             conn.close()
+
